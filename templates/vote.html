@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title -%} Vote {%- endblock %}
+
+{% block head -%}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js" integrity="sha512-TelkP3PCMJv+viMWynjKcvLsQzx6dJHvIGhfqzFtZKgAjKM1YPqcwzzDEoTc/BHjf43PcPzTQOjuTr4YdE8lNQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script defer>
+document.addEventListener("DOMContentLoaded", function() {
+
+function setup(content) {
+    const form=document.getElementById("sortable");
+    console.log(form);
+    const sortable=new Sortable(form, {
+        animation: 150,
+        ghostClass: "blue-background-class",
+
+        // Make the `.htmx-indicator` unsortable
+        filter: ".htmx-indicator",
+        onMove: function (evt) {
+            return evt.related.className.indexOf('htmx-indicator') === -1;
+        },
+
+        // Disable sorting on the `end` event
+        onEnd: function (evt) {
+            console.log(3);
+            // this.option("disabled", true);
+        }
+    });
+
+      // Re-enable sorting on the `htmx:afterSwap` event
+    form.addEventListener("htmx:afterSwap", function() {
+        console.log(4);
+        sortable.option("disabled", false);
+    });
+
+    // var sortables = content.querySelectorAll(".sortable");
+    // for (var i = 0; i < sortables.length; i++) {
+    //   var sortable = sortables[i];
+    //   var sortableInstance = new Sortable(sortable, {
+    //       animation: 150,
+    //       ghostClass: 'blue-background-class',
+    //
+    //       // Make the `.htmx-indicator` unsortable
+    //       filter: ".htmx-indicator",
+    //       onMove: function (evt) {
+    //         return evt.related.className.indexOf('htmx-indicator') === -1;
+    //       },
+    //
+    //       // Disable sorting on the `end` event
+    //       onEnd: function (evt) {
+    //         this.option("disabled", true);
+    //       }
+    //   });
+    //
+    //   // Re-enable sorting on the `htmx:afterSwap` event
+    //   sortable.addEventListener("htmx:afterSwap", function() {
+    //     console.log(3);
+    //     sortableInstance.option("disabled", false);
+    //   });
+    // }
+};
+
+htmx.onLoad(()=>setup(document.body));
+setup(document.body);
+
+});
+</script>
+{%- endblock %}
+
+{% block content %}
+<h1>Vote</h1>
+<form id="sortable" hx-post="/vote" hx-trigger="end">
+    {{ sortable|safe }}
+</form>
+{% endblock content %}
+
+{# vim: set ft=htmldjango: #}
