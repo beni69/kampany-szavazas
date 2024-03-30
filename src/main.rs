@@ -1,19 +1,37 @@
+mod auth;
 mod config;
 mod templates;
 
 #[macro_use]
 extern crate log;
-use std::env;
-
-use askama_axum::IntoResponse;
 use axum::{
-    http::{HeaderMap, HeaderValue, Response},
+    extract::State,
+    middleware::{from_fn, from_fn_with_state},
     routing::{get, post},
-    Form, Router,
+    Router,
 };
-use axum_extra::extract::CookieJar;
-use jsonwebtoken::{jwk::Jwk, DecodingKey};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use std::{env, sync::Arc};
+use tower_http::services::ServeDir;
+
+// DB default tree: User::id => User
+// DB tokens tree: token => User::id
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct User {
+    id: String,
+    email: String,
+    name: String,
+    pfp: String,
+    order: Vec<u8>,
+    voted: bool,
+    tokens: Vec<u64>,
+    admin: bool,
+}
+
+struct AppStateContainer {
+    db: sled::Db,
+}
+type AppState = State<Arc<AppStateContainer>>;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -24,62 +42,37 @@ async fn main() -> anyhow::Result<()> {
 
     info!("Hello, world!");
 
+    let db: sled::Db = sled::open("db").unwrap();
+
+    let state = Arc::new(AppStateContainer { db });
+
+    let auth_router = Router::new()
+        .route("/me", get(templates::Me::get))
+        .route("/me/clear", get(auth::clear_tokens))
+        .route("/logout", get(auth::logout))
+        .route("/vote", get(templates::Vote::get))
+        .route("/vote", post(templates::Vote::post))
+        .layer(from_fn(auth::required));
+
     let app = Router::new()
         .route("/", get(templates::Index::get))
         .route("/login", get(templates::Login::get))
-        .route("/vote", get(templates::Vote::get))
-        .route("/vote", post(templates::Vote::post))
-        .route("/auth/callback", post(auth))
-        .layer(
-            tower_http::set_header::SetResponseHeaderLayer::if_not_present(
-                axum::http::header::REFERRER_POLICY,
-                HeaderValue::from_static("no-referrer-when-downgrade"),
-            ),
-        );
+        .route("/auth/callback", post(auth::auth))
+        .merge(auth_router)
+        // .layer(
+        //     tower_http::set_header::SetResponseHeaderLayer::if_not_present(
+        //         axum::http::header::REFERRER_POLICY,
+        //         HeaderValue::from_static("no-referrer-when-downgrade"),
+        //     ),
+        // )
+        .layer(from_fn_with_state(state.clone(), auth::middleware))
+        .with_state(state);
+
+    let router = Router::new()
+        .nest_service("/static", ServeDir::new("static"))
+        .merge(app);
+
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    axum::serve(listener, router).await.unwrap();
     Ok(())
-}
-
-#[derive(Debug, Deserialize)]
-struct AuthBody {
-    credential: String,
-    g_csrf_token: String,
-}
-async fn auth(
-    headers: HeaderMap,
-    cookies: CookieJar,
-    Form(form): Form<AuthBody>,
-) -> impl IntoResponse {
-    dbg!(&form);
-    dbg!(&headers);
-
-    if !cookies
-        .get("g_csrf_token")
-        .map_or(false, |c| c.value() == form.g_csrf_token)
-    {
-        return Err(Response::builder()
-            .status(400)
-            .body("Invalid CSRF token".to_string())
-            .unwrap());
-    }
-
-    let _ = get_decodekey().await;
-
-    Ok("hello")
-}
-
-#[derive(Debug, Deserialize)]
-struct DecodeKeyBody {
-    keys: Vec<Jwk>,
-}
-async fn get_decodekey() -> anyhow::Result<DecodingKey> {
-    let v: DecodeKeyBody = reqwest::get("https://www.googleapis.com/oauth2/v3/certs")
-        .await?
-        .json()
-        .await?;
-
-    dbg!(&v);
-
-    Err(anyhow::anyhow!("todo"))
 }

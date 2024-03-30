@@ -4,15 +4,22 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>{% block title %}{% endblock %} - Kampány szavazás</title>
+        <link rel="stylesheet" href="static/style.css" media="all">
 
         {% block head %}{% endblock %}
 
         <script src="https://cdnjs.cloudflare.com/ajax/libs/htmx/1.9.11/htmx.min.js" integrity="sha512-9KsixJxn00SQfLkrArzXRFi3QyqP4RyIzYgj2Ho4YJSLEOHS00uhDQdc7dv6N8PS5OsYZWKiY0/7DsZRlcv/DQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     </head>
-    <body>
+    <body class="bg-stone-950 text-white m-20">
         {% block content %}
         <p>hello world</p>
         {% endblock content %}
+
+        <footer class="fixed bottom-0 left-0 w-full">
+            <div class="text-center bg-stone-900 text-stone-400 rounded-lg shadow m-4 w-fit mx-auto py-2 px-4 text-xs">
+                Készítette: Varga Benedek
+            </div>
+        </footer>
     </body>
 </html>
 

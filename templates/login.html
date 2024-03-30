@@ -4,30 +4,18 @@
 
 {% block head %}
 <script src="https://accounts.google.com/gsi/client?hl=hu" async></script>
-<style>
-:root, body {
-    height: 100%;
-}
-main {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-}
-</style>
 {% endblock head %}
 
 {% block content %}
-<main>
+<main class="flex flex-col gap-6 items-center justify-center h-screen w-screen fixed top-0 left-0">
     <div id="g_id_onload"
         data-client_id="195594341058-l1e4lkla1giucgbhggfmreumha6qdgmq.apps.googleusercontent.com"
         data-context="signin"
         data-ux_mode="redirect"
         data-login_uri="http://localhost:3000/auth/callback"
+        data-hd="szlgbp.hu"
         data-auto_prompt="false">
     </div>
-    <!-- data-hd="szlgbp.hu" -->
-
     <div class="g_id_signin"
         data-locale="hu"
         data-type="standard"
@@ -37,6 +25,7 @@ main {
         data-size="large"
         data-logo_alignment="left">
     </div>
+    <a href="/">Vissza</a>
 </main>
 {% endblock content %}
 

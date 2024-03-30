@@ -7,8 +7,8 @@
 <script defer>
 document.addEventListener("DOMContentLoaded", function() {
 
-function setup(content) {
-    const form=document.getElementById("sortable");
+function setup() {
+    const form = document.getElementById("sortable");
     console.log(form);
     const sortable=new Sortable(form, {
         animation: 150,
@@ -32,46 +32,21 @@ function setup(content) {
         console.log(4);
         sortable.option("disabled", false);
     });
-
-    // var sortables = content.querySelectorAll(".sortable");
-    // for (var i = 0; i < sortables.length; i++) {
-    //   var sortable = sortables[i];
-    //   var sortableInstance = new Sortable(sortable, {
-    //       animation: 150,
-    //       ghostClass: 'blue-background-class',
-    //
-    //       // Make the `.htmx-indicator` unsortable
-    //       filter: ".htmx-indicator",
-    //       onMove: function (evt) {
-    //         return evt.related.className.indexOf('htmx-indicator') === -1;
-    //       },
-    //
-    //       // Disable sorting on the `end` event
-    //       onEnd: function (evt) {
-    //         this.option("disabled", true);
-    //       }
-    //   });
-    //
-    //   // Re-enable sorting on the `htmx:afterSwap` event
-    //   sortable.addEventListener("htmx:afterSwap", function() {
-    //     console.log(3);
-    //     sortableInstance.option("disabled", false);
-    //   });
-    // }
 };
 
-htmx.onLoad(()=>setup(document.body));
-setup(document.body);
-
+htmx.onLoad(() => setup());
+setup();
 });
 </script>
 {%- endblock %}
 
 {% block content %}
-<h1>Vote</h1>
-<form id="sortable" hx-post="/vote" hx-trigger="end">
-    {{ sortable|safe }}
-</form>
+<main class="flex flex-col items-center justify-center gap-24">
+    <h1 class="text-4xl">Szavazás</h1>
+    <form id="sortable" hx-post="/vote" hx-trigger="end">
+        {{ sortable|safe }}
+    </form>
+</main>
 {% endblock content %}
 
 {# vim: set ft=htmldjango: #}
