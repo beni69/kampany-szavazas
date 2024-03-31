@@ -1,24 +1,21 @@
+use crate::{auth::save_user, AppState, Config, User};
 use askama::Template;
 use askama_axum::IntoResponse;
 use axum::{
     extract::{Extension, State},
     response::Redirect,
 };
-use axum_extra::extract::Form;
+use axum_extra::{extract::Form, response::Html};
 use serde::Deserialize;
-
-use crate::{AppState, User};
 
 #[derive(Template)]
 #[template(path = "index.html")]
 pub struct Index {
-    logged_in: bool,
+    maybe_user: Option<User>,
 }
 impl Index {
-    pub async fn get(Extension(user): Extension<Option<User>>) -> impl IntoResponse {
-        Self {
-            logged_in: user.is_some(),
-        }
+    pub async fn get(Extension(maybe_user): Extension<Option<User>>) -> impl IntoResponse {
+        Self { maybe_user }
     }
 }
 
@@ -47,15 +44,22 @@ impl Me {
     }
 }
 
-#[derive(Template, Default)]
+#[derive(Template)]
 #[template(path = "vote.html")]
 pub struct Vote {
     sortable: VoteForm,
 }
+#[derive(Debug, Deserialize)]
+pub struct FormBody {
+    item: Vec<usize>,
+}
 impl Vote {
-    pub async fn get(Extension(user): Extension<User>) -> impl IntoResponse {
+    pub async fn get(
+        State(state): AppState,
+        Extension(user): Extension<User>,
+    ) -> impl IntoResponse {
         Self {
-            sortable: VoteForm { items: user.order },
+            sortable: VoteForm::new(&state.config, user.order),
         }
     }
 
@@ -66,26 +70,57 @@ impl Vote {
     ) -> impl IntoResponse {
         dbg!(&items);
 
-        user.order = items;
-        crate::auth::save_user(&state.db, &user).unwrap();
+        // prevent spoofing
+        let mut sorted = items.clone();
+        sorted.sort_unstable();
+        if sorted == (0..state.config.classes.len()).collect::<Vec<_>>() {
+            user.order = items;
+            save_user(&state.db, &user).unwrap();
+        } else {
+            warn!("vote update rejected: {items:?}");
+        }
 
-        VoteForm { items: user.order }
+        VoteForm::new(&state.config, user.order)
     }
-}
-#[derive(Debug, Deserialize)]
-pub struct FormBody {
-    item: Vec<u8>,
+
+    pub async fn submit(
+        State(state): AppState,
+        Extension(mut user): Extension<User>,
+        Form(FormBody { item: items }): Form<FormBody>,
+    ) -> impl IntoResponse {
+        dbg!(&&items);
+
+        user.order = items;
+        user.voted = true;
+        save_user(&state.db, &user).unwrap();
+
+        Html(
+            r#"<p class="text-center text-xl">Szavazat leadva!</p>
+            <script>window.confetti()</script>"#,
+        )
+    }
 }
 
 #[derive(Template)]
 #[template(path = "sortable.html")]
 struct VoteForm {
-    items: Vec<u8>,
+    items: Vec<(usize, String)>,
 }
-impl Default for VoteForm {
-    fn default() -> Self {
-        Self {
-            items: vec![1, 2, 3, 4, 5],
-        }
+impl VoteForm {
+    pub fn new(config: &Config, order: Vec<usize>) -> Self {
+        let items = order
+            .into_iter()
+            .map(|i| (i, config.classes[i].to_owned()))
+            .collect();
+        Self { items }
+    }
+}
+
+#[derive(Template)]
+#[template(path = "admin.html")]
+pub struct Admin {}
+impl Admin {
+    pub async fn get() -> impl IntoResponse {
+        Self {}
     }
 }

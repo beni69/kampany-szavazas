@@ -3,7 +3,7 @@
 {% block title -%} Profile {%- endblock %}
 
 {% block content %}
-<img src="{{user.pfp}}">
+<img src="{{user.pfp}}" class="rounded-full">
 <p>{{user.name}}</p>
 <p>{{user.email}}</p>
 <pre>{{json}}</pre>

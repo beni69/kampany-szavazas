@@ -1,6 +1,9 @@
-<div class="htmx-indicator">Updating...</div>
-{% for i in items %}
-<div><input type='hidden' name='item' value='{{i}}'/>Item {{i}}</div>
+<div class="htmx-indicator">Mentés...</div>
+{% for ( i, item ) in items %}
+<div class="bg-stone-900 rounded-lg shadow mt-2 p-4 w-full relative text-left hover:text-white select-none"><input type='hidden' name='item' value='{{i}}'/>
+    <span>{{item}}</span>
+    <span class="sort-icon inline absolute right-4"></span>
+</div>
 {% endfor %}
 
 {# vim: set ft=htmldjango: #}

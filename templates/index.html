@@ -3,22 +3,36 @@
 {% block title -%} Főoldal {%- endblock %}
 
 {% block content %}
-<main class="flex flex-col items-center justify-center gap-24">
-    <h1 class="text-4xl">Kampány szavazás</h1>
-    <div class="flex flex-col items-center justify-evenly gap-6">
-        <a class="bg-blue-800 hover:shadow-lg hover:shadow-blue-800/50 p-5 rounded-md mx-auto" href="
-            {%- if logged_in -%}
-            /vote
-            {%- else -%}
-            /login
-            {%- endif -%}
-            ">Szavazz!</a>
+<main class="flex flex-col items-center justify-evenly">
+    <a class="bg-blue-800 hover:shadow-lg hover:shadow-blue-800/50 p-5 m-4 rounded-md mx-auto" href="
+        {%- if maybe_user.is_some() -%}
+        /vote
+        {%- else -%}
+        /login
+        {%- endif -%}
+        ">Szavazz!</a>
 
-        {% if logged_in -%}
-        <a href="/logout">Kijelentkezés</a>
-        {%- endif %}
-    </div>
+    {% if maybe_user.is_some() && maybe_user.as_ref().unwrap().admin %}
+    <a href="/admin" hx-boost="true" class="hover:underline text-red-400 m-4">Admin</a>
+    {% endif %}
 </main>
 {% endblock content %}
+
+{% block footer -%}
+{% if let Some(user) = maybe_user -%}
+<div class="bg-stone-900 rounded-lg w-auto mx-4 md:w-1/3 md:mx-auto shadow m-2 p-3 flex justify-between">
+    <div class="flex gap-2 items-center">
+        <img src="{{ user.pfp }}" width="48" class="rounded-full">
+        <div>
+            <p>{{ user.name }}</p>
+            {% if user.admin %}<p class="text-xs text-red-400">ADMIN</p>{% endif %}
+        </div>
+    </div>
+    <button class="text-xl hover:bg-stone-950 p-1 rounded-lg" hx-post="/auth/logout">
+        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="M5 5h6c.55 0 1-.45 1-1s-.45-1-1-1H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h6c.55 0 1-.45 1-1s-.45-1-1-1H5z"/><path fill="currentColor" d="m20.65 11.65l-2.79-2.79a.501.501 0 0 0-.86.35V11h-7c-.55 0-1 .45-1 1s.45 1 1 1h7v1.79c0 .45.54.67.85.35l2.79-2.79c.2-.19.2-.51.01-.7"/></svg>
+    </button>
+</div>
+{%- endif %}
+{% endblock footer %}
 
 {# vim: set ft=htmldjango: #}

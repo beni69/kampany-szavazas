@@ -1,3 +1,6 @@
 /target
 /db
+/.env
+
+/tailwind.bin
 /static/style.css

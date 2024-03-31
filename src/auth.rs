@@ -1,3 +1,4 @@
+use crate::{AppState, Config, User};
 use askama_axum::IntoResponse;
 use axum::{extract::State, http::Response, middleware::Next, response::Redirect, Extension, Form};
 use axum_extra::extract::{cookie::Cookie, CookieJar};
@@ -6,10 +7,6 @@ use jsonwebtoken::{jwk::JwkSet, DecodingKey, TokenData, Validation};
 use ring::rand::{SecureRandom, SystemRandom};
 use serde::Deserialize;
 
-use crate::{AppState, User};
-
-const AUD: &str = "195594341058-l1e4lkla1giucgbhggfmreumha6qdgmq.apps.googleusercontent.com";
-
 #[derive(Debug, Deserialize)]
 pub(super) struct AuthBody {
     credential: String,
@@ -17,26 +14,16 @@ pub(super) struct AuthBody {
 }
 #[derive(Debug, Deserialize)]
 struct Claims {
-    /// issuer
-    iss: String,
-    /// oAuth client ID
-    aud: String,
-    /// token creation timestamp
-    iat: u64,
-    /// validity start timestamp
-    nbf: u64,
-    /// expiry timestamp
-    exp: u64,
-    /// JWT ID
-    jti: String,
     /// account ID
     sub: String,
     /// domain
     hd: String,
     email: String,
     email_verified: bool,
-    name: String,
     picture: String,
+    // used for hungarian name ordering
+    given_name: String,
+    family_name: String,
 }
 pub(super) async fn auth(
     State(state): AppState,
@@ -57,7 +44,7 @@ pub(super) async fn auth(
     };
     let cookies = cookies.remove(c);
 
-    let token = match verify_jwt(&form.credential).await {
+    let token = match verify_jwt(&state.config, &form.credential).await {
         Ok(token) => token,
         Err(e) => {
             error!("{}", &e);
@@ -75,25 +62,37 @@ pub(super) async fn auth(
             .unwrap());
     }
 
+    let is_admin = state.config.admins.contains(&token.claims.email);
+
     let user: User = match state.db.get(&token.claims.sub) {
         Ok(Some(bin)) => {
-            let user = bincode::DefaultOptions::new().deserialize(&bin).unwrap();
+            let mut user: User = bincode::DefaultOptions::new().deserialize(&bin).unwrap();
             info!("user found: {user:?}");
+
+            // react to .env ADMINS changes
+            if is_admin != user.admin {
+                warn!(
+                    "{} admin status changed: {}",
+                    &token.claims.email, &is_admin
+                );
+                user.admin = is_admin;
+                save_user(&state.db, &user).unwrap();
+            }
+
             user
         }
         _ => {
             let user = User {
                 id: token.claims.sub.clone(),
                 email: token.claims.email,
-                name: token.claims.name,
+                name: format!("{} {}", token.claims.family_name, token.claims.given_name),
                 pfp: token.claims.picture,
-                order: vec![1, 2, 3, 4, 5],
+                order: (0..state.config.classes.len()).collect(),
                 voted: false,
                 tokens: Vec::new(),
-                admin: false,
+                admin: is_admin,
             };
-            let bin = bincode::DefaultOptions::new().serialize(&user).unwrap();
-            state.db.insert(&token.claims.sub, bin).unwrap();
+            save_user(&state.db, &user).unwrap();
             user
         }
     };
@@ -106,7 +105,7 @@ pub(super) async fn auth(
     ))
 }
 
-async fn verify_jwt(jwt: &str) -> anyhow::Result<TokenData<Claims>> {
+async fn verify_jwt(config: &Config, jwt: &str) -> anyhow::Result<TokenData<Claims>> {
     let jwt_header = jsonwebtoken::decode_header(jwt)?;
 
     let key = get_decodekey(
@@ -117,7 +116,7 @@ async fn verify_jwt(jwt: &str) -> anyhow::Result<TokenData<Claims>> {
     .await?;
 
     let mut validation = Validation::new(jwt_header.alg);
-    validation.set_audience(&[AUD]);
+    validation.set_audience(&[&config.google_client_id]);
     validation.set_issuer(&["https://accounts.google.com"]);
     validation.set_required_spec_claims(&["exp", "nbf", "aud", "iss", "sub"]);
 
@@ -146,7 +145,6 @@ pub(super) async fn logout(
     State(state): AppState,
 ) -> impl IntoResponse {
     let token = token.unwrap();
-    dbg!(token);
 
     state
         .db
@@ -159,7 +157,7 @@ pub(super) async fn logout(
         .remove(user.tokens.iter().position(|t| *t == token).unwrap());
     save_user(&state.db, &user).unwrap();
 
-    (cookies.remove("token"), Redirect::to("/"))
+    (cookies.remove("token"), [("HX-Refresh", "true")])
 }
 
 pub(super) async fn clear_tokens(
@@ -240,5 +238,16 @@ pub(super) async fn required(
     };
 
     req.extensions_mut().insert(user);
+    Ok(next.run(req).await)
+}
+
+pub(super) async fn required_admin(
+    Extension(user): Extension<User>,
+    req: axum::extract::Request,
+    next: Next,
+) -> Result<axum::response::Response, Redirect> {
+    if !user.admin {
+        return Err(Redirect::to("/"));
+    };
     Ok(next.run(req).await)
 }
