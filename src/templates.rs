@@ -6,6 +6,7 @@ use axum::{
     response::Redirect,
 };
 use axum_extra::{extract::Form, response::Html};
+use bincode::Options;
 use serde::Deserialize;
 
 #[derive(Template)]
@@ -120,7 +121,20 @@ impl VoteForm {
 #[template(path = "admin.html")]
 pub struct Admin {}
 impl Admin {
-    pub async fn get() -> impl IntoResponse {
+    pub async fn get(
+        State(state): AppState,
+        // Extension(mut user): Extension<User>,
+    ) -> impl IntoResponse {
+        let x = state
+            .db
+            .iter()
+            .filter_map(|x| x.ok())
+            .flat_map(|(_, bin)| bincode::DefaultOptions::new().deserialize::<User>(&bin))
+            .filter_map(|u| u.voted);
+        // TODO: get votes
+
+        let x = x.collect::<Vec<_>>();
+
         Self {}
     }
 }
