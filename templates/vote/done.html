@@ -1,0 +1,18 @@
+<div class="w-fit">
+    <p class="text-center text-xl">Szavazat leadva!</p>
+    <button hx-delete="/vote" hx-target="main" hx-swap="outerHTML" class="text-red-400 text-center w-full mt-8 hover:underline">Visszavonás</button>
+</div>
+
+<script defer type="module">
+    import confetti from "https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/+esm";
+    confetti({
+        angle: 60,
+        origin: { x: 0 },
+    });
+    confetti({
+        angle: 120,
+        origin: { x: 1 },
+    });
+</script>
+
+{# vim: set ft=htmldjango: #}

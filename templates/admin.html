@@ -4,14 +4,18 @@
 
 {% block heading %}
 <div class="mt-12 mx-3 text-center">
-    <h1 class="text-red-400 hover:text-white hover:underline text-4xl text-center">Admin</h1>
+    <h1 class="text-red-400 text-4xl text-center">Admin</h1>
     <a href="/" class="hover:text-white hover:underline">Vissza</a>
 </div>
 {% endblock heading %}
 
 {% block content %}
 <main class="flex flex-col items-center justify-evenly gap-20">
-    hello admin
+    <div class="bg-stone-900 rounded-lg w-auto mx-4 shadow m-2 p-3">
+        {% for v in votes %}
+        <p>{{ format!("{v:?}") }}</p>
+        {% endfor %}
+    </div>
 </main>
 {% endblock content %}
 

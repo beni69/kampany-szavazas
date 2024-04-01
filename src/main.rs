@@ -31,6 +31,8 @@ struct Config {
     classes: Vec<String>,
     #[serde(default)]
     admins: Vec<String>,
+    #[serde(default = "def_cat")]
+    categories: Vec<String>,
 }
 fn def_host() -> IpAddr {
     IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0))
@@ -47,6 +49,9 @@ fn def_db() -> String {
 fn def_classes() -> Vec<String> {
     ('A'..='F').map(|c| format!("{c} osztály")).collect()
 }
+fn def_cat() -> Vec<String> {
+    vec!["Fődíj".to_string()]
+}
 
 // DB default tree: User::id => User
 // DB tokens tree: token => User::id
@@ -56,7 +61,7 @@ struct User {
     email: String,
     name: String,
     pfp: String,
-    order: Vec<usize>,
+    order: Vec<usize>, // TODO: Vec<Vec<usize>>
     voted: bool,
     tokens: Vec<u64>,
     admin: bool,
@@ -93,9 +98,14 @@ async fn main() -> anyhow::Result<()> {
         .route("/me", get(templates::Me::get))
         .route("/me/clear", get(auth::clear_tokens))
         .route("/auth/logout", get(auth::logout).post(auth::logout))
-        .route("/vote", get(templates::Vote::get))
-        .route("/vote", post(templates::Vote::post))
-        .route("/vote/submit", post(templates::Vote::submit))
+        .route(
+            "/vote",
+            get(templates::VoteBase::get)
+                .patch(templates::VoteBase::patch)
+                .put(templates::VoteBase::put)
+                .post(templates::VoteBase::post)
+                .delete(templates::VoteBase::delete),
+        )
         .nest("/admin", admin_router)
         .route_layer(from_fn(auth::required));
 
