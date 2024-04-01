@@ -3,6 +3,13 @@
 {% block title -%} Szavazás {%- endblock %}
 
 {% block content %}
+<main class="w-fit text-center">
+    <p class="text-center text-xl">A szavazás lezárult!</p>
+    <p class="text-center text-md mt-4 mb-6">
+    {%- if voted %}Köszönjük a szavazatodat!{% else %}Sajnos lemaradtál... majd jövőre!{% endif -%}
+    </p>
+    <a href="/" hx-boost="true" class="hover:underline">Vissza</a>
+</main>
 {% endblock content %}
 
 {# vim: set ft=htmldjango: #}

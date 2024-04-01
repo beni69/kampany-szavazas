@@ -14,6 +14,7 @@ use std::{
     env,
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::Arc,
+    time::SystemTime,
 };
 use tower_http::services::ServeDir;
 
@@ -33,6 +34,9 @@ struct Config {
     admins: Vec<String>,
     #[serde(default = "def_cat")]
     categories: Vec<String>,
+    #[serde(default)]
+    #[serde(with = "humantime_serde")]
+    close: Option<SystemTime>,
 }
 fn def_host() -> IpAddr {
     IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0))
@@ -47,10 +51,18 @@ fn def_db() -> String {
     "./db".to_string()
 }
 fn def_classes() -> Vec<String> {
-    ('A'..='F').map(|c| format!("{c} osztály")).collect()
+    ('A'..='F').map(|f| format!("{f} osztály")).collect()
 }
 fn def_cat() -> Vec<String> {
-    vec!["Fődíj".to_string()]
+    [
+        "Fődíj",
+        "Legjobb stand",
+        "Legjobb tánc",
+        "Legjobb programok",
+        "Fairplay",
+    ]
+    .map(Into::into)
+    .into()
 }
 
 // DB default tree: User::id => User
@@ -94,21 +106,26 @@ async fn main() -> anyhow::Result<()> {
         .route("/", get(templates::Admin::get))
         .route_layer(from_fn(auth::required_admin));
 
-    // TODO: /vote/closed, CLOSED env var
     let auth_router = Router::new()
         .route("/me", get(templates::Me::get))
         .route("/me/clear", get(auth::clear_tokens))
         .route("/auth/logout", get(auth::logout).post(auth::logout))
         .nest(
             "/vote",
-            Router::new().route(
-                "/",
-                get(templates::VoteBase::get)
-                    .patch(templates::VoteBase::patch)
-                    .put(templates::VoteBase::put)
-                    .post(templates::VoteBase::post)
-                    .delete(templates::VoteBase::delete),
-            ),
+            Router::new()
+                .route(
+                    "/",
+                    get(templates::VoteBase::get)
+                        .patch(templates::VoteBase::patch)
+                        .put(templates::VoteBase::put)
+                        .post(templates::VoteBase::post)
+                        .delete(templates::VoteBase::delete),
+                )
+                .route_layer(from_fn_with_state(
+                    state.clone(),
+                    templates::VoteBase::vote_middleware,
+                ))
+                .route("/closed", get(templates::VoteClosed::get)),
         )
         .nest("/admin", admin_router)
         .route_layer(from_fn(auth::required));

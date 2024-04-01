@@ -3,12 +3,14 @@ use askama::Template;
 use askama_axum::IntoResponse;
 use axum::{
     extract::{Extension, State},
+    http::Method,
+    middleware::Next,
     response::Redirect,
 };
 use axum_extra::extract::Form;
 use bincode::Options;
 use serde::Deserialize;
-use std::sync::Arc;
+use std::{sync::Arc, time::SystemTime};
 
 #[derive(Template)]
 #[template(path = "index.html")]
@@ -134,7 +136,6 @@ impl VoteBase {
         user.voted = false;
         save_user(&state.db, &user).unwrap();
 
-        // TODO: undo finalize if flow started form done page
         VoteTab {
             category: (
                 state.config.categories.len() - 1,
@@ -142,14 +143,27 @@ impl VoteBase {
             ),
             items: Self::get_items(&state.config, user),
         }
-        // VoteBase {
-        //     category: (
-        //         state.config.categories.len() - 1,
-        //         state.config.categories.len(),
-        //     ),
-        //     items: Self::get_items(&state.config, user),
-        //     voted: false,
-        // }
+    }
+
+    /// check if user submited or voting closed
+    pub async fn vote_middleware(
+        State(state): AppState,
+        Extension(user): Extension<User>,
+        req: axum::extract::Request,
+        next: Next,
+    ) -> Result<axum::response::Response, Redirect> {
+        if let Some(close) = state.config.close {
+            let now = SystemTime::now();
+            if close < now {
+                return Err(Redirect::to("/vote/closed"));
+            }
+        }
+
+        if user.voted && (req.method() != Method::GET && req.method() != Method::DELETE) {
+            return Err(Redirect::to("/vote"));
+        }
+
+        Ok(next.run(req).await)
     }
 
     fn get_items(config: &Config, user: User) -> Vec<(usize, String)> {
@@ -193,6 +207,27 @@ struct VoteSortable {
 #[derive(Template)]
 #[template(path = "vote/done.html")]
 struct VoteDone;
+
+#[derive(Template)]
+#[template(path = "vote/closed.html")]
+pub struct VoteClosed {
+    voted: bool,
+}
+impl VoteClosed {
+    pub async fn get(
+        State(state): AppState,
+        Extension(mut user): Extension<User>,
+    ) -> impl IntoResponse {
+        if let Some(close) = state.config.close {
+            let now = SystemTime::now();
+            if close < now {
+                return Ok(Self { voted: user.voted });
+            }
+        }
+
+        Err(Redirect::to("/vote"))
+    }
+}
 
 #[derive(Template)]
 #[template(path = "admin.html")]
