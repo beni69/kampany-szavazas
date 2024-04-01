@@ -1,25 +1,25 @@
 <main class="w-52">
     <div class="text-center text-xl">{{category.0 + 1}} / {{category.1}}</div>
-    <form id="sortable" hx-patch="/vote" hx-trigger="end">
+    <form id="sort" hx-patch="/vote" hx-trigger="end">
         {% include "sortable.html" %}
     </form>
 
     <div class="flex gap-2 my-6">
         {% if category.0 > 0 -%}
         <button class="bg-stone-800 hover:bg-stone-700 hover:text-white hover:shadow-lg hover:shadow-stone-700/20 stroke-white rounded-lg shadow p-4"
-            hx-put="/vote" hx-include="#sortable" hx-target="main" hx-swap="innerHTML transition:true" hx-vals='{"tab":{{ category.0 }},"back":true}'>
+            hx-put="/vote" hx-include="form#sort" hx-target="main" hx-swap="innerHTML transition:true" hx-vals='{"tab":{{ category.0 }},"back":true}'>
             <span class="back-icon"></span>
         </button>
         {%- endif %}
         {% if category.0 + 1 != category.1 -%}
         <button class="bg-green-800 hover:bg-green-700 hover:text-white hover:shadow-lg hover:shadow-green-700/20 stroke-white rounded-lg shadow p-4 flex-grow"
-            hx-put="/vote" hx-include="#sortable" hx-target="main" hx-swap="innerHTML transition:true" hx-vals='{"tab":{{ category.0 }}}'>
+            hx-put="/vote" hx-include="form#sort" hx-target="main" hx-swap="innerHTML transition:true" hx-vals='{"tab":{{ category.0 }}}'>
             Következő
             <span class="fwd-icon"></span>
         </button>
         {%- else -%}
         <button class="bg-green-800 hover:bg-green-700 hover:text-white hover:shadow-lg hover:shadow-green-700/20 stroke-white rounded-lg shadow p-4 flex-grow"
-            hx-post="/vote" hx-include="#sortable" hx-target="main" hx-swap="innerHTML transition:true">
+            hx-post="/vote" hx-include="form#sort" hx-target="main" hx-swap="innerHTML transition:true">
             Leadás
             <span class="check-icon"></span>
         </button>

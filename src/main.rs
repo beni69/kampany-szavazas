@@ -94,17 +94,21 @@ async fn main() -> anyhow::Result<()> {
         .route("/", get(templates::Admin::get))
         .route_layer(from_fn(auth::required_admin));
 
+    // TODO: /vote/closed, CLOSED env var
     let auth_router = Router::new()
         .route("/me", get(templates::Me::get))
         .route("/me/clear", get(auth::clear_tokens))
         .route("/auth/logout", get(auth::logout).post(auth::logout))
-        .route(
+        .nest(
             "/vote",
-            get(templates::VoteBase::get)
-                .patch(templates::VoteBase::patch)
-                .put(templates::VoteBase::put)
-                .post(templates::VoteBase::post)
-                .delete(templates::VoteBase::delete),
+            Router::new().route(
+                "/",
+                get(templates::VoteBase::get)
+                    .patch(templates::VoteBase::patch)
+                    .put(templates::VoteBase::put)
+                    .post(templates::VoteBase::post)
+                    .delete(templates::VoteBase::delete),
+            ),
         )
         .nest("/admin", admin_router)
         .route_layer(from_fn(auth::required));

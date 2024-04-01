@@ -69,7 +69,6 @@ pub struct TabBody {
 // PUT: next page, returns tab
 // POST: submit vote, returns end screen
 // DELETE: undo vote
-// TODO: /vote/closed, CLOSED env var
 impl VoteBase {
     pub async fn get(
         State(state): AppState,
