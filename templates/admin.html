@@ -10,11 +10,35 @@
 {% endblock heading %}
 
 {% block content %}
-<main class="flex flex-col items-center justify-evenly gap-20">
+<main class="flex flex-col items-center justify-evenly gap-20 w-52">
     <div class="bg-stone-900 rounded-lg w-auto mx-4 shadow m-2 p-3">
-        {% for v in votes %}
-        <p>{{ format!("{v:?}") }}</p>
-        {% endfor %}
+        {# <table class="table-fixed">
+            <thead>
+                <tr>
+                    {% for category in categories %}
+                    <th class="p-2 overflow-visible">{{ category }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for category in self::transpose2(results.to_owned()) %}
+                <tr>
+                    {% for class in category  %}
+                    <td>{{ class.0 }} ({{ class.1 }})</td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table> #}
+
+        <!-- TODO: griddy -->
+        <div class="grid grid-rows-7">
+            <div>
+                {% for category in categories %}
+                <div class="p-2">{{ category }}</div>
+                {% endfor %}
+            </div>
+        </div>
     </div>
 </main>
 {% endblock content %}

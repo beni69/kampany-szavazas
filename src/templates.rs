@@ -9,6 +9,7 @@ use axum::{
 };
 use axum_extra::extract::Form;
 use bincode::Options;
+use itertools::Itertools;
 use serde::Deserialize;
 use std::{sync::Arc, time::SystemTime};
 
@@ -244,7 +245,9 @@ impl VoteClosed {
 #[derive(Template)]
 #[template(path = "admin.html")]
 pub struct Admin {
+    categories: Vec<String>,
     votes: Vec<Vec<Vec<usize>>>,
+    results: Vec<Vec<(String, i32)>>,
 }
 impl Admin {
     pub async fn get(
@@ -256,12 +259,65 @@ impl Admin {
             .iter()
             .filter_map(|x| x.ok())
             .flat_map(|(_, bin)| bincode::DefaultOptions::new().deserialize::<User>(&bin))
-            .filter_map(|u| if u.voted { Some(u.order) } else { None });
+            .filter_map(|u| if u.voted { Some(u.order) } else { None }); // only count submitted votes
 
+        // [user][category][place] = class
         let votes = x.collect::<Vec<_>>();
 
-        info!("{votes:?}");
+        // [category][class] = score
+        let mut scores: Vec<Vec<i32>> = std::iter::repeat(
+            std::iter::repeat(0)
+                .take(state.config.classes.len())
+                .collect(),
+        )
+        .take(state.config.categories.len())
+        .collect();
 
-        Self { votes }
+        // for each user
+        for vote in votes.iter() {
+            // take each category
+            for (category, order) in vote.iter().enumerate() {
+                // take the order of the top 3
+                for (class, score) in order.iter().take(3).zip((1..=3).rev()) {
+                    scores[category][*class] += score;
+                }
+            }
+        }
+
+        // TODO: process score penalties??
+
+        // [category][place] = class
+        let results: Vec<Vec<(String, i32)>> = scores
+            .iter()
+            .map(|cat| {
+                cat.iter()
+                    .zip(state.config.classes.iter())
+                    .sorted_by(|a, b| Ord::cmp(a.0, b.0))
+                    .skip(state.config.classes.len() - 3) // skip lowest n to get top 3
+                    .rev()
+                    .map(|(score, class)| (class.to_owned(), *score))
+                    .collect()
+            })
+            .collect();
+
+        Self {
+            categories: state.config.categories.clone(),
+            votes,
+            results,
+        }
     }
+}
+
+fn transpose2<T>(v: Vec<Vec<T>>) -> Vec<Vec<T>> {
+    assert!(!v.is_empty());
+    let len = v[0].len();
+    let mut iters: Vec<_> = v.into_iter().map(|n| n.into_iter()).collect();
+    (0..len)
+        .map(|_| {
+            iters
+                .iter_mut()
+                .map(|n| n.next().unwrap())
+                .collect::<Vec<T>>()
+        })
+        .collect()
 }
