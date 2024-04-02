@@ -1,5 +1,5 @@
 [package]
-name = "kampany-szavazas"
+name = "kampany_szavazas"
 version = "0.1.0"
 edition = "2021"
 
@@ -31,3 +31,7 @@ tower-http = { version = "0.5.2", features = ["set-header", "fs"] }
 # https://djc.github.io/askama/performance.html
 [profile.dev.package.askama_derive]
 opt-level = 3
+
+[profile.release]
+strip = true
+lto = true

@@ -701,7 +701,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "kampany-szavazas"
+name = "kampany_szavazas"
 version = "0.1.0"
 dependencies = [
  "anyhow",
