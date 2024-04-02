@@ -51,13 +51,16 @@ impl Me {
 #[derive(Template)]
 #[template(path = "vote/vbase.html")]
 pub struct VoteBase {
-    category: (usize, usize), // (current, len)
+    tab: (usize, usize), // (current, len)
+    category: String,
     items: Vec<(usize, String)>,
     voted: bool,
 }
 #[derive(Debug, Deserialize)]
 pub struct SortableBody {
-    item: Vec<usize>,
+    tab: usize,
+    #[serde(rename = "item")]
+    items: Vec<usize>,
 }
 #[derive(Debug, Deserialize)]
 pub struct TabBody {
@@ -77,21 +80,23 @@ impl VoteBase {
         Extension(user): Extension<User>,
     ) -> impl IntoResponse {
         Self {
-            category: (0, state.config.categories.len()),
+            tab: (0, state.config.categories.len()),
+            category: state.config.categories[0].clone(),
             voted: user.voted,
-            items: Self::get_items(&state.config, user),
+            items: Self::get_items(&state.config, user, 0),
         }
     }
 
     pub async fn patch(
         State(state): AppState,
         Extension(mut user): Extension<User>,
-        Form(SortableBody { item: items }): Form<SortableBody>,
+        Form(SortableBody { items, tab }): Form<SortableBody>,
     ) -> impl IntoResponse {
-        Self::save_vote(&state, &mut user, items, false);
+        Self::save_vote(&state, &mut user, items, tab, false);
 
         VoteSortable {
-            items: Self::get_items(&state.config, user),
+            tab: (tab, state.config.categories.len()),
+            items: Self::get_items(&state.config, user, tab),
         }
     }
 
@@ -102,29 +107,28 @@ impl VoteBase {
     ) -> impl IntoResponse {
         dbg!(&form);
 
-        Self::save_vote(&state, &mut user, form.item, false);
+        Self::save_vote(&state, &mut user, form.item, form.tab, false);
 
+        let tab = if form.back {
+            form.tab.saturating_sub(1)
+        } else {
+            form.tab + 1
+        };
         VoteTab {
-            category: (
-                if form.back {
-                    form.tab - 1
-                } else {
-                    form.tab + 1
-                },
-                state.config.categories.len(),
-            ),
-            items: Self::get_items(&state.config, user),
+            tab: (tab, state.config.categories.len()),
+            category: state.config.categories[tab].clone(),
+            items: Self::get_items(&state.config, user, tab),
         }
     }
 
     pub async fn post(
         State(state): AppState,
         Extension(mut user): Extension<User>,
-        Form(SortableBody { item: items }): Form<SortableBody>,
+        Form(SortableBody { items, tab }): Form<SortableBody>,
     ) -> impl IntoResponse {
         dbg!(&&items);
 
-        Self::save_vote(&state, &mut user, items, true);
+        Self::save_vote(&state, &mut user, items, tab, true);
 
         VoteDone
     }
@@ -136,12 +140,12 @@ impl VoteBase {
         user.voted = false;
         save_user(&state.db, &user).unwrap();
 
+        // "move back" to last tab
+        let tab = state.config.categories.len() - 1;
         VoteTab {
-            category: (
-                state.config.categories.len() - 1,
-                state.config.categories.len(),
-            ),
-            items: Self::get_items(&state.config, user),
+            tab: (tab, state.config.categories.len()),
+            category: state.config.categories[tab].clone(),
+            items: Self::get_items(&state.config, user, tab),
         }
     }
 
@@ -166,21 +170,27 @@ impl VoteBase {
         Ok(next.run(req).await)
     }
 
-    fn get_items(config: &Config, user: User) -> Vec<(usize, String)> {
-        user.order
-            .into_iter()
-            .map(|i| (i, config.classes[i].to_owned()))
+    fn get_items(config: &Config, user: User, tab: usize) -> Vec<(usize, String)> {
+        user.order[tab]
+            .iter()
+            .map(|i| (*i, config.classes[*i].to_owned()))
             .collect()
     }
 
-    fn save_vote(state: &Arc<AppStateContainer>, user: &mut User, items: Vec<usize>, voted: bool) {
+    fn save_vote(
+        state: &Arc<AppStateContainer>,
+        user: &mut User,
+        items: Vec<usize>,
+        tab: usize,
+        voted: bool,
+    ) {
         dbg!(&items);
 
         // prevent spoofing
         let mut sorted = items.clone();
         sorted.sort_unstable();
         if sorted == (0..state.config.classes.len()).collect::<Vec<_>>() {
-            user.order = items;
+            user.order[tab] = items;
             if voted {
                 user.voted = true;
             }
@@ -194,13 +204,15 @@ impl VoteBase {
 #[derive(Template)]
 #[template(path = "vote/tab.html")]
 struct VoteTab {
-    category: (usize, usize), // (current, len)
+    tab: (usize, usize), // (current, len)
+    category: String,
     items: Vec<(usize, String)>,
 }
 
 #[derive(Template)]
 #[template(path = "vote/sortable.html")]
 struct VoteSortable {
+    tab: (usize, usize), // (current, len)
     items: Vec<(usize, String)>,
 }
 
@@ -216,7 +228,7 @@ pub struct VoteClosed {
 impl VoteClosed {
     pub async fn get(
         State(state): AppState,
-        Extension(mut user): Extension<User>,
+        Extension(user): Extension<User>,
     ) -> impl IntoResponse {
         if let Some(close) = state.config.close {
             let now = SystemTime::now();
@@ -232,7 +244,7 @@ impl VoteClosed {
 #[derive(Template)]
 #[template(path = "admin.html")]
 pub struct Admin {
-    votes: Vec<Vec<usize>>,
+    votes: Vec<Vec<Vec<usize>>>,
 }
 impl Admin {
     pub async fn get(

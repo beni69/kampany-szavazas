@@ -55,11 +55,11 @@ fn def_classes() -> Vec<String> {
 }
 fn def_cat() -> Vec<String> {
     [
-        "Fődíj",
         "Legjobb stand",
         "Legjobb tánc",
         "Legjobb programok",
         "Fairplay",
+        "Fődíj",
     ]
     .map(Into::into)
     .into()
@@ -73,7 +73,7 @@ struct User {
     email: String,
     name: String,
     pfp: String,
-    order: Vec<usize>, // TODO: Vec<Vec<usize>>
+    order: Vec<Vec<usize>>,
     voted: bool,
     tokens: Vec<u64>,
     admin: bool,

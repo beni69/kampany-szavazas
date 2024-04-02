@@ -87,7 +87,9 @@ pub(super) async fn auth(
                 email: token.claims.email,
                 name: format!("{} {}", token.claims.family_name, token.claims.given_name),
                 pfp: token.claims.picture,
-                order: (0..state.config.classes.len()).collect(),
+                order: std::iter::repeat((0..state.config.classes.len()).collect())
+                    .take(state.config.categories.len())
+                    .collect(),
                 voted: false,
                 tokens: Vec::new(),
                 admin: is_admin,
