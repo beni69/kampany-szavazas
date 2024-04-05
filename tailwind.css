@@ -1,3 +1,28 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer utilities {
+    .font-title {
+        font-family: "Sigmar", system-ui, sans-serif;
+    }
+
+    .flow {
+        background-position: 0%;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: rgba(0,0,0,0);
+        background-clip: text;
+        color: rgba(0,0,0,0);
+        background-image: linear-gradient(to right, #82aaff, #89ddff, #82aaff, #89ddff);
+        background-size: 300%;
+        animation: flow 1s linear infinite
+    }
+    @keyframes flow {
+        from {
+            background-position: left
+        }
+        to {
+            background-position: right
+        }
+    }
+}

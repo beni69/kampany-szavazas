@@ -4,41 +4,27 @@
 
 {% block heading %}
 <div class="mt-12 mx-3 text-center">
-    <h1 class="text-red-400 text-4xl text-center">Admin</h1>
+    <h1 class="text-red-400 text-4xl text-center font-title">Admin</h1>
     <a href="/" class="hover:text-white hover:underline">Vissza</a>
 </div>
 {% endblock heading %}
 
 {% block content %}
-<main class="flex flex-col items-center justify-evenly gap-20 w-52">
-    <div class="bg-stone-900 rounded-lg w-auto mx-4 shadow m-2 p-3">
-        {# <table class="table-fixed">
-            <thead>
-                <tr>
-                    {% for category in categories %}
-                    <th class="p-2 overflow-visible">{{ category }}</th>
-                    {% endfor %}
-                </tr>
-            </thead>
-            <tbody>
-                {% for category in self::transpose2(results.to_owned()) %}
-                <tr>
-                    {% for class in category  %}
-                    <td>{{ class.0 }} ({{ class.1 }})</td>
-                    {% endfor %}
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table> #}
+<main class="gap-20 flex flex-wrap items-center justify-evenly mt-16 sm:px-16">
+    {% for ( res, cat ) in results.iter().zip(categories) %}
+    <div class="bg-stone-900 rounded-lg shadow p-8 grid grid-cols-2 divide-y divide-solid divide-stone-500/40">
+        <h2 class="text-xl text-center col-span-2">{{ cat }}</h2>
+        {% for ( (class, score), i ) in res.iter().zip(1..) %}
+        <p class="p-2"><span class="text-sm text-stone-400">{{ i }}.</span> {{ class }}</p>
+        <p class="p-2 text-right">{{ format!("{:.2}", score / 3.0) }}</p>
+        {% endfor %}
+    </div>
+    {% endfor %}
 
-        <!-- TODO: griddy -->
-        <div class="grid grid-rows-7">
-            <div>
-                {% for category in categories %}
-                <div class="p-2">{{ category }}</div>
-                {% endfor %}
-            </div>
-        </div>
+    <div class="bg-stone-900 rounded-lg shadow p-8 grid grid-cols-4 divide-y divide-solid divide-stone-500/40">
+        <h2 class="text-xl text-center text-stone-400 italic col-span-4">Statisztika</h2>
+        <p class="p-2 col-span-3">Regisztrált felhasználók:</p> <p class="p-2 text-right">{{ user_count }}</p>
+        <p class="p-2 col-span-3">Leadott szavazatok:</p> <p class="p-2 text-right">{{ votes.len() }}</p>
     </div>
 </main>
 {% endblock content %}

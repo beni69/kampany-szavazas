@@ -151,6 +151,7 @@ impl VoteBase {
     }
 
     /// check if user submited or voting closed
+    // TODO: exclude users from participating classes
     pub async fn vote_middleware(
         State(state): AppState,
         Extension(user): Extension<User>,
@@ -247,16 +248,23 @@ impl VoteClosed {
 pub struct Admin {
     categories: Vec<String>,
     votes: Vec<Vec<Vec<usize>>>,
-    results: Vec<Vec<(String, i32)>>,
+    results: Vec<Vec<(String, f64)>>,
+    user_count: usize,
 }
 impl Admin {
     pub async fn get(
         State(state): AppState,
         // Extension(mut user): Extension<User>,
     ) -> impl IntoResponse {
+        let mut user_count = 0usize;
+
         let x = state
             .db
             .iter()
+            .map(|x| {
+                user_count += 1;
+                x
+            })
             .filter_map(|x| x.ok())
             .flat_map(|(_, bin)| bincode::DefaultOptions::new().deserialize::<User>(&bin))
             .filter_map(|u| if u.voted { Some(u.order) } else { None }); // only count submitted votes
@@ -287,20 +295,20 @@ impl Admin {
         // TODO: process score penalties??
 
         // [category][place] = class
-        let results: Vec<Vec<(String, i32)>> = scores
+        let results: Vec<Vec<(String, f64)>> = scores
             .iter()
             .map(|cat| {
                 cat.iter()
                     .zip(state.config.classes.iter())
                     .sorted_by(|a, b| Ord::cmp(a.0, b.0))
-                    .skip(state.config.classes.len() - 3) // skip lowest n to get top 3
                     .rev()
-                    .map(|(score, class)| (class.to_owned(), *score))
+                    .map(|(score, class)| (class.to_owned(), *score as f64))
                     .collect()
             })
             .collect();
 
         Self {
+            user_count,
             categories: state.config.categories.clone(),
             votes,
             results,

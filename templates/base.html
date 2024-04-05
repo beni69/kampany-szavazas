@@ -6,12 +6,15 @@
         <title>{% block title %}{% endblock %} - Kampány szavazás</title>
         <link rel="stylesheet" href="/static/style.css" media="all">
         <script src="https://cdn.jsdelivr.net/npm/htmx.org@1.9.11/dist/htmx.min.js" integrity="sha256-0VEHzH8ECp6DsbZhdv2SetQLXgJVgToD+Mz+7UbuQrA=" crossorigin="anonymous"></script>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Sigmar&display=swap" rel="stylesheet">
 
         {% block head %}{% endblock %}
     </head>
     <body class="h-full flex flex-col items-center justify-between bg-stone-950 text-stone-100">
         {% block heading %}
-        <a href="/" class="mt-12 mb-6 mx-3 hover:text-white hover:underline"><h1 class="text-4xl text-center">Kampány szavazás</h1></a>
+        <a href="/" class="mt-12 mb-6 mx-3 hover:text-white hover:underline"><h1 class="text-4xl text-center font-title">Kampány szavazás</h1></a>
         {% endblock heading %}
 
         {% block content %}
@@ -47,7 +50,7 @@
                         <path d="M0 0 C2.93423195 1.79646854 4.47205355 2.9441071 6 6 C6.34708476 11.29304255 6.51351894 14.73358414 3 19 C-0.42176689 21.56632517 -3.84640421 21.36435051 -8 21 C-11.5386994 19.34860695 -12.81070153 18.28394771 -15 15 C-15.79383407 10.06987261 -15.71523135 6.19205226 -13.125 1.875 C-8.7304329 -0.76174026 -5.00472351 -0.91219098 0 0 Z " transform="translate(396,63)"/>
                     </svg>
                 </a>
-                <p>Készítette: Varga Benedek</p>
+                <p>Készítette: <span class="hover:flow">Varga Benedek</span></p>
             </footer>
         </div>
     </body>
