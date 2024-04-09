@@ -20,6 +20,7 @@ jsonwebtoken = "9.3.0"
 lazy_static = "1.4.0"
 log = "0.4.21"
 pretty_env_logger = "0.5.0"
+recap = "0.1.2"
 reqwest = { version = "0.12.2", default-features = false, features = ["rustls-tls", "http2", "charset", "json"] }
 ring = "0.17.8"
 serde = { version = "1.0.197", features = ["derive"] }

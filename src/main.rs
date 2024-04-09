@@ -65,6 +65,9 @@ fn def_cat() -> Vec<String> {
     .into()
 }
 
+#[recap(regex = r#"(?P<>)"#)]
+struct SchoolEmail {}
+
 // DB default tree: User::id => User
 // DB tokens tree: token => User::id
 #[derive(Debug, Clone, Serialize, Deserialize)]
