@@ -9,6 +9,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
+use recap::Recap;
 use serde::{Deserialize, Serialize};
 use std::{
     env,
@@ -65,8 +66,16 @@ fn def_cat() -> Vec<String> {
     .into()
 }
 
-#[recap(regex = r#"(?P<>)"#)]
-struct SchoolEmail {}
+#[derive(Debug, Deserialize, PartialEq, Recap)]
+#[recap(
+    regex = r#"(?P<fname>.+?)(?:\.(?P<lname>.+?))??(?:\.(?P<year>[0-9]{2})(?P<class>[a-g]))?@szlgbp\.hu"#
+)]
+struct SchoolEmail {
+    fname: String,
+    lname: Option<String>,
+    year: Option<u8>,
+    class: Option<char>,
+}
 
 // DB default tree: User::id => User
 // DB tokens tree: token => User::id
@@ -128,7 +137,8 @@ async fn main() -> anyhow::Result<()> {
                     state.clone(),
                     templates::VoteBase::vote_middleware,
                 ))
-                .route("/closed", get(templates::VoteClosed::get)),
+                .route("/closed", get(templates::VoteClosed::get))
+                .route("/prohibited", get(templates::VoteProhibited::get)),
         )
         .nest("/admin", admin_router)
         .route_layer(from_fn(auth::required));
@@ -150,4 +160,80 @@ async fn main() -> anyhow::Result<()> {
     info!("Listening on {addr}");
     axum::serve(listener, router).await.unwrap();
     Ok(())
+}
+
+#[cfg(test)]
+mod email_regex {
+    use super::SchoolEmail;
+
+    #[test]
+    fn it_works() {
+        let result = 2 + 2;
+        assert_eq!(result, 4);
+    }
+
+    #[test]
+    fn student() {
+        let email: SchoolEmail = "gec.imre.20f@szlgbp.hu".parse().unwrap();
+        let res = SchoolEmail {
+            fname: "gec".into(),
+            lname: Some("imre".into()),
+            year: Some(20),
+            class: Some('f'),
+        };
+
+        assert_eq!(email, res);
+    }
+
+    #[test]
+    fn test_student() {
+        let email: SchoolEmail = "szt0.gp00.20g@szlgbp.hu".parse().unwrap();
+        let res = SchoolEmail {
+            fname: "szt0".into(),
+            lname: Some("gp00".into()),
+            year: Some(20),
+            class: Some('g'),
+        };
+
+        assert_eq!(email, res);
+    }
+
+    #[test]
+    fn teacher() {
+        let email: SchoolEmail = "vegh.bela@szlgbp.hu".parse().unwrap();
+        let res = SchoolEmail {
+            fname: "vegh".into(),
+            lname: Some("bela".into()),
+            year: None,
+            class: None,
+        };
+
+        assert_eq!(email, res);
+    }
+
+    #[test]
+    fn single_name() {
+        let email: SchoolEmail = "moriczka@szlgbp.hu".parse().unwrap();
+        let res = SchoolEmail {
+            fname: "moriczka".into(),
+            lname: None,
+            year: None,
+            class: None,
+        };
+
+        assert_eq!(email, res);
+    }
+
+    #[test]
+    fn single_name_year() {
+        let email: SchoolEmail = "gezuka.19a@szlgbp.hu".parse().unwrap();
+        let res = SchoolEmail {
+            fname: "gezuka".into(),
+            lname: None,
+            year: Some(19),
+            class: Some('a'),
+        };
+
+        assert_eq!(email, res);
+    }
 }

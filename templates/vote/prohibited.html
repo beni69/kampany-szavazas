@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title -%} Szavazás {%- endblock %}
+
+{% block content %}
+<main class="w-fit text-center">
+    <p class="text-center text-xl">Sajnos nem szavazhatsz</p>
+    <p class="text-center text-md mt-4 mb-6">
+        A kampányoló osztályok tagjai nem szavazhatnak.
+        Ha nem idén kampányolsz, hiba van a rendszerben. Kérlek szólj a DÖK-nek.
+    </p>
+    <a href="/" hx-boost="true" class="hover:underline">Vissza</a>
+</main>
+{% endblock content %}
+
+{# vim: set ft=htmldjango: #}

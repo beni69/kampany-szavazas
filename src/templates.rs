@@ -9,6 +9,7 @@ use axum::{
 };
 use axum_extra::extract::Form;
 use bincode::Options;
+use chrono::Datelike;
 use itertools::Itertools;
 use serde::Deserialize;
 use std::{sync::Arc, time::SystemTime};
@@ -165,6 +166,12 @@ impl VoteBase {
             }
         }
 
+        // filter out participating students
+        if VoteProhibited::participating(&user.email) {
+            return Err(Redirect::to("/vote/prohibited"));
+        }
+
+        // reject vote changing methods from users who voted
         if user.voted && (req.method() != Method::GET && req.method() != Method::DELETE) {
             return Err(Redirect::to("/vote"));
         }
@@ -240,6 +247,47 @@ impl VoteClosed {
         }
 
         Err(Redirect::to("/vote"))
+    }
+}
+
+#[derive(Template)]
+#[template(path = "vote/prohibited.html")]
+pub struct VoteProhibited;
+impl VoteProhibited {
+    pub fn participating(email_str: &str) -> bool {
+        match email_str.parse::<crate::SchoolEmail>() {
+            Ok(email) => {
+                // teacher => can always vote
+                let Some(year) = email.year else {
+                    return false;
+                };
+
+                // participating in event => can't vote
+                let current_year = chrono::Utc::now().year();
+                if (year as i32) + 2000 + 3 == current_year {
+                    return true;
+                }
+
+                // (presumably) other student => can vote
+                return false;
+            }
+            Err(e) => {
+                error!("{e}");
+                // couldn't parse email => can't vote (will have to report bug)
+                return true;
+            }
+        }
+    }
+
+    pub async fn get(
+        State(state): AppState,
+        Extension(user): Extension<User>,
+    ) -> impl IntoResponse {
+        if Self::participating(&user.email) {
+            Ok(Self)
+        } else {
+            Err(Redirect::to("/vote"))
+        }
     }
 }
 
