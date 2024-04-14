@@ -480,7 +480,7 @@ impl AdminResults {
             .collect();
 
         let time = started.elapsed();
-        warn!(
+        info!(
             "Processed {} votes - {} penalties in {}μs",
             votes.len(),
             points_len,
