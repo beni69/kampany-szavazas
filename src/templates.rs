@@ -2,7 +2,7 @@ use crate::{auth::save_user, AppState, AppStateContainer, Config, Points, User};
 use askama::Template;
 use askama_axum::IntoResponse;
 use axum::{
-    extract::{Extension, State},
+    extract::{Extension, Query, State},
     http::Method,
     middleware::Next,
     response::Redirect,
@@ -11,6 +11,7 @@ use axum_extra::extract::Form;
 use bincode::Options;
 use chrono::Datelike;
 use itertools::Itertools;
+use ring::rand::{SecureRandom, SystemRandom};
 use serde::Deserialize;
 use std::{
     sync::Arc,
@@ -155,7 +156,6 @@ impl VoteBase {
     }
 
     /// check if user submited or voting closed
-    // TODO: exclude users from participating classes
     pub async fn vote_middleware(
         State(state): AppState,
         Extension(user): Extension<User>,
@@ -282,10 +282,7 @@ impl VoteProhibited {
         }
     }
 
-    pub async fn get(
-        State(state): AppState,
-        Extension(user): Extension<User>,
-    ) -> impl IntoResponse {
+    pub async fn get(Extension(user): Extension<User>) -> impl IntoResponse {
         if Self::participating(&user.email) {
             Ok(Self)
         } else {
@@ -303,47 +300,93 @@ impl Admin {
     }
 }
 
-/*
-fn get_user(db: &sled::Db, token: &str) -> anyhow::Result<(User, u64)> {
-    let tree = db.open_tree("tokens")?;
-    let key = u64::from_str_radix(token, 16)?;
-    let Some(bin) = tree.get(key.to_be_bytes())? else {
-        anyhow::bail!("user not found")
-    };
-    let uid = String::from_utf8(bin.to_vec())?;
-
-    let Some(bin) = db.get(&uid)? else {
-        anyhow::bail!("user not found")
-    };
-    let user = bincode::DefaultOptions::new().deserialize(&bin).unwrap();
-    Ok((user, key))
-}
- */
-
 #[derive(Template)]
 #[template(path = "admin/points.html")]
-pub struct AdminPoints {}
+pub struct AdminPoints {
+    classes: Vec<String>,
+    points: Vec<Vec<(u16, Points)>>,
+}
+#[derive(Debug, Deserialize)]
+pub struct AdminiPointsDelete {
+    id: u16,
+}
 impl AdminPoints {
-    fn list_points(db: &sled::Db, config: &Config) -> anyhow::Result<()> {
+    pub fn list_points(db: &sled::Db, config: &Config) -> anyhow::Result<Vec<Vec<(u16, Points)>>> {
         let mut points = Vec::new();
         for _ in 0..config.classes.len() {
             points.push(Vec::new());
         }
 
         let tree = db.open_tree("points")?;
-        for p in tree
-            .iter()
-            .filter_map(|x| x.ok())
-            .flat_map(|(_, bin)| bincode::DefaultOptions::new().deserialize::<Points>(&bin))
-        {
-            points[p.class].push(p);
+        for p in tree.iter().filter_map(|x| x.ok()).flat_map(|(id, bin)| {
+            bincode::DefaultOptions::new()
+                .deserialize::<Points>(&bin)
+                .map(|bin| {
+                    // kill me
+                    (
+                        u16::from_be_bytes(
+                            id.split_at(std::mem::size_of::<u16>())
+                                .0
+                                .try_into()
+                                .unwrap(),
+                        ),
+                        bin,
+                    )
+                })
+        }) {
+            points[p.1.class].push(p);
         }
 
+        Ok(points)
+    }
+
+    fn add_points(db: &sled::Db, points: Points) -> anyhow::Result<()> {
+        let tree = db.open_tree("points")?;
+        let bin = bincode::DefaultOptions::new().serialize(&points)?;
+        let id = {
+            let mut buf = [0; std::mem::size_of::<u16>()];
+            loop {
+                SystemRandom::new().fill(&mut buf)?;
+                if !tree.contains_key(&buf)? {
+                    break;
+                }
+            }
+            buf
+        };
+        tree.insert(id, bin)?;
         Ok(())
     }
 
-    pub async fn get() -> impl IntoResponse {
-        Self {}
+    fn delete_points(db: &sled::Db, id: u16) -> anyhow::Result<()> {
+        let tree = db.open_tree("points")?;
+        tree.remove(id.to_be_bytes())?;
+        Ok(())
+    }
+
+    pub async fn get(State(state): AppState) -> impl IntoResponse {
+        Self {
+            points: Self::list_points(&state.db, &state.config).unwrap(),
+            classes: state.config.classes.clone(),
+        }
+    }
+
+    pub async fn post(State(state): AppState, Form(points): Form<Points>) -> impl IntoResponse {
+        Self::add_points(&state.db, points).unwrap();
+        Self {
+            points: Self::list_points(&state.db, &state.config).unwrap(),
+            classes: state.config.classes.clone(),
+        }
+    }
+
+    pub async fn delete(
+        State(state): AppState,
+        Query(form): Query<AdminiPointsDelete>,
+    ) -> impl IntoResponse {
+        Self::delete_points(&state.db, form.id).unwrap();
+        Self {
+            points: Self::list_points(&state.db, &state.config).unwrap(),
+            classes: state.config.classes.clone(),
+        }
     }
 }
 
@@ -354,6 +397,8 @@ pub struct AdminResults {
     votes: Vec<Vec<Vec<usize>>>,
     results: Vec<Vec<(String, f64)>>,
     user_count: usize,
+    points_len: usize,
+    points_acc: i32,
 }
 impl AdminResults {
     pub async fn get(
@@ -399,7 +444,27 @@ impl AdminResults {
             }
         }
 
-        // TODO: process score penalties
+        // process score penalties
+        let mut points_len = 0;
+        let mut points_acc = 0;
+        if let Some(last) = scores.last_mut() {
+            let points = AdminPoints::list_points(&state.db, &state.config)
+                .unwrap()
+                .into_iter()
+                .map(|class_points| {
+                    class_points
+                        .into_iter()
+                        .map(|(_, points)| {
+                            points_len += 1;
+                            points.points
+                        })
+                        .sum::<i32>()
+                });
+            for (i, amount) in points.enumerate() {
+                points_acc += amount;
+                last[i] -= amount * 3;
+            }
+        }
 
         // combine points with classnames and apply a descending sort
         // [category][place] = class
@@ -415,27 +480,20 @@ impl AdminResults {
             .collect();
 
         let time = started.elapsed();
-        warn!("Processed {} votes in {}μs", votes.len(), time.as_micros());
+        warn!(
+            "Processed {} votes - {} penalties in {}μs",
+            votes.len(),
+            points_len,
+            time.as_micros()
+        );
 
         Self {
             user_count,
+            points_len,
+            points_acc,
             categories: state.config.categories.clone(),
             votes,
             results,
         }
     }
-}
-
-fn transpose2<T>(v: Vec<Vec<T>>) -> Vec<Vec<T>> {
-    assert!(!v.is_empty());
-    let len = v[0].len();
-    let mut iters: Vec<_> = v.into_iter().map(|n| n.into_iter()).collect();
-    (0..len)
-        .map(|_| {
-            iters
-                .iter_mut()
-                .map(|n| n.next().unwrap())
-                .collect::<Vec<T>>()
-        })
-        .collect()
 }

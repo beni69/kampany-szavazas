@@ -25,6 +25,8 @@
         <h2 class="text-xl text-center text-stone-400 italic col-span-4">Statisztika</h2>
         <p class="p-2 col-span-3">Regisztrált felhasználók:</p> <p class="p-2 text-right">{{ user_count }}</p>
         <p class="p-2 col-span-3">Leadott szavazatok:</p> <p class="p-2 text-right">{{ votes.len() }}</p>
+        <p class="p-2 col-span-3">Feljegyzett pontlevonások:</p> <p class="p-2 text-right">{{ points_len }}</p>
+        <p class="p-2 col-span-3">Összesen levont pontok:</p> <p class="p-2 text-right">{{ points_acc }}</p>
     </div>
 </main>
 {% endblock content %}

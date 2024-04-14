@@ -123,7 +123,12 @@ async fn main() -> anyhow::Result<()> {
 
     let admin_router = Router::new()
         .route("/", get(templates::Admin::get))
-        .route("/points", get(templates::AdminPoints::get))
+        .route(
+            "/points",
+            get(templates::AdminPoints::get)
+                .post(templates::AdminPoints::post)
+                .delete(templates::AdminPoints::delete),
+        )
         .route("/results", get(templates::AdminResults::get))
         .route_layer(from_fn(auth::required_admin));
 

@@ -10,8 +10,45 @@
 {% endblock heading %}
 
 {% block content %}
-<main>
-    <a href="/admin/results" hx-boost="true" class="hover:underline m-4">Eredmények</a>
+<div class="bg-stone-900 rounded-lg shadow p-8 min-w-[30vw] mt-16">
+    <form hx-post="/admin/points" hx-select="main" hx-target="main" hx-swap="outerHTML" class="flex flex-col">
+        <label for="class">Osztály</label>
+        <select id="class" name="class" class="bg-stone-800 rounded-md p-1">
+            {% for ( i, class ) in classes.iter().enumerate() %}
+            <option value="{{ i }}">{{ class }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="number" class="mt-4">Mennyiség</label>
+        <input type="number" id="points" name="points" min="1" value="1" class="bg-stone-800 rounded-md p-1">
+
+        <label for="reason" class="mt-4">Indoklás</label>
+        <input type="text" id="reason" name="reason" class="bg-stone-800 rounded-md p-1">
+
+        <div class="flex justify-center">
+            <input type="submit" value="Hozzáadás" class="mt-4 bg-green-800 hover:bg-green-700 hover:text-white hover:shadow-lg hover:shadow-green-700/20 stroke-white rounded-lg shadow p-4">
+        </div>
+    </form>
+</div>
+
+<main class="gap-20 flex flex-wrap items-center justify-evenly my-16 sm:px-16"
+    hx-select="main" hx-target="main" hx-swap="outerHTML">
+    {% for (pp, class) in points.iter().zip(classes) %}
+    <div class="bg-stone-900 rounded-lg shadow p-8 min-w-[30vw]">
+        <h2 class="text-xl text-center col-span-2">{{ class }}</h2>
+        {% if pp.len() == 0 %}
+        <p class="text-stone-400 italic">Nincsenek levonások</p>
+        {% else %}
+        {% for ( id, p ) in pp %}
+        <div class="flex justify-between gap-10">
+            <p>-{{ p.points }}</p>
+            <p>{{ p.reason }}</p>
+            <button class="text-red-500" hx-delete="/admin/points?id={{ id }}">X</button>
+        </div>
+        {% endfor %}
+        {% endif %}
+    </div>
+    {% endfor %}
 </main>
 {% endblock content %}
 
