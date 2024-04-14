@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title -%} Admin {%- endblock %}
+
+{% block heading %}
+<div class="mt-12 mx-3 text-center">
+    <a href="/admin"><h1 class="text-red-400 text-4xl text-center hover:underline font-title">Admin</h1></a>
+    <a href="/" class="hover:text-white hover:underline">Vissza</a>
+</div>
+{% endblock heading %}
+
+{% block content %}
+<main>
+    <div class="my-6"><a href="/admin/points" hx-boost="true" class="hover:underline m-4">Pontlevonások</a></div>
+    <div class="my-6"><a href="/admin/results" hx-boost="true" class="hover:underline m-4">Eredmények</a></div>
+</main>
+{% endblock content %}
+
+{# vim: set ft=htmldjango: #}

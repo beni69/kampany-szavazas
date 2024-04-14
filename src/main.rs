@@ -78,6 +78,7 @@ struct SchoolEmail {
 
 // DB default tree: User::id => User
 // DB tokens tree: token => User::id
+// DB points tree: class => Vec<Points>
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct User {
     id: String,
@@ -88,6 +89,13 @@ struct User {
     voted: bool,
     tokens: Vec<u64>,
     admin: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct Points {
+    class: usize,
+    reason: String,
+    points: i32,
 }
 
 struct AppStateContainer {
@@ -115,6 +123,8 @@ async fn main() -> anyhow::Result<()> {
 
     let admin_router = Router::new()
         .route("/", get(templates::Admin::get))
+        .route("/points", get(templates::AdminPoints::get))
+        .route("/results", get(templates::AdminResults::get))
         .route_layer(from_fn(auth::required_admin));
 
     let auth_router = Router::new()

@@ -1,4 +1,4 @@
-use crate::{auth::save_user, AppState, AppStateContainer, Config, User};
+use crate::{auth::save_user, AppState, AppStateContainer, Config, Points, User};
 use askama::Template;
 use askama_axum::IntoResponse;
 use axum::{
@@ -12,7 +12,10 @@ use bincode::Options;
 use chrono::Datelike;
 use itertools::Itertools;
 use serde::Deserialize;
-use std::{sync::Arc, time::SystemTime};
+use std::{
+    sync::Arc,
+    time::{Instant, SystemTime},
+};
 
 #[derive(Template)]
 #[template(path = "index.html")]
@@ -292,20 +295,74 @@ impl VoteProhibited {
 }
 
 #[derive(Template)]
-#[template(path = "admin.html")]
-pub struct Admin {
+#[template(path = "admin/admin.html")]
+pub struct Admin;
+impl Admin {
+    pub async fn get() -> impl IntoResponse {
+        Self
+    }
+}
+
+/*
+fn get_user(db: &sled::Db, token: &str) -> anyhow::Result<(User, u64)> {
+    let tree = db.open_tree("tokens")?;
+    let key = u64::from_str_radix(token, 16)?;
+    let Some(bin) = tree.get(key.to_be_bytes())? else {
+        anyhow::bail!("user not found")
+    };
+    let uid = String::from_utf8(bin.to_vec())?;
+
+    let Some(bin) = db.get(&uid)? else {
+        anyhow::bail!("user not found")
+    };
+    let user = bincode::DefaultOptions::new().deserialize(&bin).unwrap();
+    Ok((user, key))
+}
+ */
+
+#[derive(Template)]
+#[template(path = "admin/points.html")]
+pub struct AdminPoints {}
+impl AdminPoints {
+    fn list_points(db: &sled::Db, config: &Config) -> anyhow::Result<()> {
+        let mut points = Vec::new();
+        for _ in 0..config.classes.len() {
+            points.push(Vec::new());
+        }
+
+        let tree = db.open_tree("points")?;
+        for p in tree
+            .iter()
+            .filter_map(|x| x.ok())
+            .flat_map(|(_, bin)| bincode::DefaultOptions::new().deserialize::<Points>(&bin))
+        {
+            points[p.class].push(p);
+        }
+
+        Ok(())
+    }
+
+    pub async fn get() -> impl IntoResponse {
+        Self {}
+    }
+}
+
+#[derive(Template)]
+#[template(path = "admin/results.html")]
+pub struct AdminResults {
     categories: Vec<String>,
     votes: Vec<Vec<Vec<usize>>>,
     results: Vec<Vec<(String, f64)>>,
     user_count: usize,
 }
-impl Admin {
+impl AdminResults {
     pub async fn get(
         State(state): AppState,
         // Extension(mut user): Extension<User>,
     ) -> impl IntoResponse {
-        let mut user_count = 0usize;
+        let started = Instant::now();
 
+        let mut user_count = 0usize;
         let x = state
             .db
             .iter()
@@ -321,6 +378,7 @@ impl Admin {
         let votes = x.collect::<Vec<_>>();
 
         // [category][class] = score
+        // generate arrays to hold results
         let mut scores: Vec<Vec<i32>> = std::iter::repeat(
             std::iter::repeat(0)
                 .take(state.config.classes.len())
@@ -329,6 +387,7 @@ impl Admin {
         .take(state.config.categories.len())
         .collect();
 
+        // fill `scores` with the results
         // for each user
         for vote in votes.iter() {
             // take each category
@@ -340,20 +399,23 @@ impl Admin {
             }
         }
 
-        // TODO: process score penalties??
+        // TODO: process score penalties
 
+        // combine points with classnames and apply a descending sort
         // [category][place] = class
         let results: Vec<Vec<(String, f64)>> = scores
             .iter()
             .map(|cat| {
                 cat.iter()
                     .zip(state.config.classes.iter())
-                    .sorted_by(|a, b| Ord::cmp(a.0, b.0))
-                    .rev()
+                    .sorted_by(|a, b| Ord::cmp(a.0, b.0).reverse())
                     .map(|(score, class)| (class.to_owned(), *score as f64))
                     .collect()
             })
             .collect();
+
+        let time = started.elapsed();
+        warn!("Processed {} votes in {}μs", votes.len(), time.as_micros());
 
         Self {
             user_count,
