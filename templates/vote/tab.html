@@ -1,6 +1,6 @@
 <main class="w-52">
     <div class="w-full rounded-full bg-stone-900">
-        <div class="h-2 rounded-full bg-stone-300" style="width:{{ tab.0 * 100 / tab.1 }}%"></div>
+        <div class="h-2 rounded-full bg-stone-300" style="width:{{ (tab.0 + 1) * 100 / tab.1 }}%"></div>
     </div>
     <div class="text-center text-xl mt-4">{{ category }}</div>
     <form id="sort" hx-patch="/vote" hx-trigger="end">
