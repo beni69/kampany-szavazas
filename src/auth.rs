@@ -181,8 +181,13 @@ fn new_token(db: &sled::Db, mut user: User) -> anyhow::Result<(User, String)> {
     let tree = db.open_tree("tokens")?;
     let token = {
         let mut buf = [0; std::mem::size_of::<u64>()];
-        SystemRandom::new().fill(&mut buf)?;
-        u64::from_ne_bytes(buf)
+        loop {
+            SystemRandom::new().fill(&mut buf)?;
+            if !tree.contains_key(&buf)? {
+                break;
+            }
+        }
+        u64::from_be_bytes(buf)
     };
     tree.insert(&token.to_be_bytes(), &user.id[..])?;
     user.tokens.push(token);
