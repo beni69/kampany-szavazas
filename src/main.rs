@@ -56,10 +56,9 @@ fn def_classes() -> Vec<String> {
 }
 fn def_cat() -> Vec<String> {
     [
-        "Legjobb stand",
+        "Legjobb dizájn",
         "Legjobb tánc",
         "Legjobb programok",
-        "Fairplay",
         "Fődíj",
     ]
     .map(Into::into)
