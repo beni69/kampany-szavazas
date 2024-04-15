@@ -55,7 +55,7 @@ pub(super) async fn auth(
         }
     };
 
-    if token.claims.email_verified == false || token.claims.hd != "szlgbp.hu" {
+    if !token.claims.email_verified || token.claims.hd != "szlgbp.hu" {
         return Err(Response::builder()
             .status(400)
             .body("Invalid Google account".to_string())
@@ -122,7 +122,7 @@ async fn verify_jwt(config: &Config, jwt: &str) -> anyhow::Result<TokenData<Clai
     validation.set_issuer(&["https://accounts.google.com"]);
     validation.set_required_spec_claims(&["exp", "nbf", "aud", "iss", "sub"]);
 
-    let token = jsonwebtoken::decode::<Claims>(&jwt, &key, &validation)?;
+    let token = jsonwebtoken::decode::<Claims>(jwt, &key, &validation)?;
     Ok(token)
 }
 
@@ -169,7 +169,7 @@ pub(super) async fn clear_tokens(
 ) -> impl IntoResponse {
     let tree = state.db.open_tree("tokens").unwrap();
     for token in &user.tokens {
-        tree.remove(&token.to_be_bytes()).unwrap();
+        tree.remove(token.to_be_bytes()).unwrap();
     }
     user.tokens.clear();
     save_user(&state.db, &user).unwrap();
@@ -183,13 +183,13 @@ fn new_token(db: &sled::Db, mut user: User) -> anyhow::Result<(User, String)> {
         let mut buf = [0; std::mem::size_of::<u64>()];
         loop {
             SystemRandom::new().fill(&mut buf)?;
-            if !tree.contains_key(&buf)? {
+            if !tree.contains_key(buf)? {
                 break;
             }
         }
         u64::from_be_bytes(buf)
     };
-    tree.insert(&token.to_be_bytes(), &user.id[..])?;
+    tree.insert(token.to_be_bytes(), &user.id[..])?;
     user.tokens.push(token);
     save_user(db, &user)?;
 
@@ -204,7 +204,7 @@ fn get_user(db: &sled::Db, token: &str) -> anyhow::Result<(User, u64)> {
     };
     let uid = String::from_utf8(bin.to_vec())?;
 
-    let Some(bin) = db.get(&uid)? else {
+    let Some(bin) = db.get(uid)? else {
         anyhow::bail!("user not found")
     };
     let user = bincode::DefaultOptions::new().deserialize(&bin).unwrap();
@@ -225,7 +225,7 @@ pub(super) async fn middleware(
 ) -> axum::response::Response {
     let token = cookies.get("token");
 
-    let (user, token): (_, Token) = match token.map(|c| get_user(&state.db, &c.value())) {
+    let (user, token): (_, Token) = match token.map(|c| get_user(&state.db, c.value())) {
         Some(Ok((user, token))) => (Some(user), Some(token)),
         _ => (None, None),
     };

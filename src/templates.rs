@@ -206,7 +206,7 @@ impl VoteBase {
             if voted {
                 user.voted = true;
             }
-            save_user(&state.db, &user).unwrap();
+            save_user(&state.db, user).unwrap();
         } else {
             warn!("vote update rejected: {items:?}");
         }
@@ -272,12 +272,12 @@ impl VoteProhibited {
                 }
 
                 // (presumably) other student => can vote
-                return false;
+                false
             }
             Err(e) => {
                 error!("{e}");
                 // couldn't parse email => can't vote (will have to report bug)
-                return true;
+                true
             }
         }
     }
@@ -347,7 +347,7 @@ impl AdminPoints {
             let mut buf = [0; std::mem::size_of::<u16>()];
             loop {
                 SystemRandom::new().fill(&mut buf)?;
-                if !tree.contains_key(&buf)? {
+                if !tree.contains_key(buf)? {
                     break;
                 }
             }
