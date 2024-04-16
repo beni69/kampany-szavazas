@@ -393,7 +393,7 @@ pub struct AdminResults {
     results: Vec<Vec<(String, f64)>>,
     user_count: usize,
     points_len: usize,
-    points_acc: i32,
+    points_acc: (i32, i32), // (positive, negative) points
 }
 impl AdminResults {
     pub async fn get(
@@ -441,7 +441,7 @@ impl AdminResults {
 
         // process score penalties
         let mut points_len = 0;
-        let mut points_acc = 0;
+        let mut points_acc = (0, 0);
         if let Some(last) = scores.last_mut() {
             let points = AdminPoints::list_points(&state.db, &state.config)
                 .unwrap()
@@ -456,8 +456,12 @@ impl AdminResults {
                         .sum::<i32>()
                 });
             for (i, amount) in points.enumerate() {
-                points_acc += amount;
-                last[i] -= amount * 3;
+                if amount > 0 {
+                    points_acc.0 += amount
+                } else {
+                    points_acc.1 += amount
+                };
+                last[i] += amount * 3;
             }
         }
 

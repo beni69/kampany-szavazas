@@ -20,7 +20,7 @@
         </select>
 
         <label for="number" class="mt-4">Mennyiség</label>
-        <input type="number" id="points" name="points" min="1" value="1" class="bg-stone-800 rounded-md p-1">
+        <input type="number" id="points" name="points" value="0" class="bg-stone-800 rounded-md p-1">
 
         <label for="reason" class="mt-4">Indoklás</label>
         <input type="text" id="reason" name="reason" class="bg-stone-800 rounded-md p-1">
@@ -37,11 +37,11 @@
     <div class="bg-stone-900 rounded-lg shadow p-8 min-w-[30vw]">
         <h2 class="text-xl text-center col-span-2">{{ class }}</h2>
         {% if pp.len() == 0 %}
-        <p class="text-stone-400 italic">Nincsenek levonások</p>
+        <p class="text-stone-400 italic">Nincsenek megadott pontok</p>
         {% else %}
         {% for ( id, p ) in pp %}
         <div class="flex justify-between gap-10">
-            <p>-{{ p.points }}</p>
+            <p>{{ p.points }}</p>
             <p>{{ p.reason }}</p>
             <button class="text-red-500" hx-delete="/admin/points?id={{ id }}">X</button>
         </div>
