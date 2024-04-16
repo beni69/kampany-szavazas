@@ -108,9 +108,9 @@ type AppState = State<Arc<AppStateContainer>>;
 async fn main() -> anyhow::Result<()> {
     let envfile = dotenvy::dotenv();
     if env::var("RUST_LOG").is_err() {
-        env::set_var("RUST_LOG", "info");
+        env::set_var("RUST_LOG", "kampany_szavazas=debug");
     }
-    pretty_env_logger::init();
+    env_logger::init();
     if let Ok(f) = envfile {
         info!("Config loaded from {f:?}");
     }

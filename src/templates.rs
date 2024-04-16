@@ -111,8 +111,6 @@ impl VoteBase {
         Extension(mut user): Extension<User>,
         Form(form): Form<TabBody>,
     ) -> impl IntoResponse {
-        dbg!(&form);
-
         Self::save_vote(&state, &mut user, form.item, form.tab, false);
 
         let tab = if form.back {
@@ -132,9 +130,8 @@ impl VoteBase {
         Extension(mut user): Extension<User>,
         Form(SortableBody { items, tab }): Form<SortableBody>,
     ) -> impl IntoResponse {
-        dbg!(&&items);
-
         Self::save_vote(&state, &mut user, items, tab, true);
+        debug!("Vote recorded: user #{}", user.id);
 
         VoteDone
     }
@@ -196,8 +193,6 @@ impl VoteBase {
         tab: usize,
         voted: bool,
     ) {
-        dbg!(&items);
-
         // prevent spoofing
         let mut sorted = items.clone();
         sorted.sort_unstable();
@@ -480,8 +475,8 @@ impl AdminResults {
             .collect();
 
         let time = started.elapsed();
-        info!(
-            "Processed {} votes - {} penalties in {}μs",
+        debug!(
+            "Processed {} votes & {} penalties in {}μs",
             votes.len(),
             points_len,
             time.as_micros()
