@@ -20,6 +20,7 @@ struct Claims {
     hd: String,
     email: String,
     email_verified: bool,
+    #[serde(default)] // very rare bug: picture field is missing
     picture: String,
     // used for hungarian name ordering
     given_name: String,
@@ -54,6 +55,10 @@ pub(super) async fn auth(
                 .unwrap());
         }
     };
+
+    if token.claims.picture.is_empty() {
+        debug!("Empty `picture` field for {}", token.claims.email);
+    }
 
     if !token.claims.email_verified || token.claims.hd != "szlgbp.hu" {
         return Err(Response::builder()
