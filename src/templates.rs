@@ -35,7 +35,7 @@ pub struct Login {}
 impl Login {
     pub async fn get(Extension(user): Extension<Option<User>>) -> impl IntoResponse {
         if user.is_some() {
-            return Err(Redirect::to("/me"));
+            return Err(Redirect::to("/"));
         }
         Ok(Self {})
     }

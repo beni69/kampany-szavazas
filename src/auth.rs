@@ -72,7 +72,7 @@ pub(super) async fn auth(
     let user: User = match state.db.get(&token.claims.sub) {
         Ok(Some(bin)) => {
             let mut user: User = bincode::DefaultOptions::new().deserialize(&bin).unwrap();
-            info!("user found: {user:?}");
+            debug!("user found: {user:?}");
 
             // react to .env ADMINS changes
             if is_admin != user.admin {
