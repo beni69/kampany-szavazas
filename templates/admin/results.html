@@ -28,7 +28,7 @@
         <p class="p-2 col-span-3">Feljegyzett pontváltoztatások:</p> <p class="p-2 text-right">{{ points_len }}</p>
         <p class="p-2 col-span-3">Összes mínuszpont:</p> <p class="p-2 text-right">{{ points_acc.1 }}</p>
         <p class="p-2 col-span-3">Összes pluszpont:</p> <p class="p-2 text-right">{{ points_acc.0 }}</p>
-        <p class="p-2 col-span-3">Pontváltoztatások összege:</p> <p class="p-2 text-right">{{ points_acc.0 - points_acc.1 }}</p>
+        <p class="p-2 col-span-3">Pontváltoztatások összege:</p> <p class="p-2 text-right">{{ points_acc.0 + points_acc.1 }}</p>
     </div>
 </main>
 {% endblock content %}
