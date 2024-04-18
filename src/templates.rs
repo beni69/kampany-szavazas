@@ -358,6 +358,20 @@ impl AdminPoints {
         Ok(())
     }
 
+    fn sums(points: &Vec<(u16, Points)>) -> String {
+        let mut acc = (0, 0);
+
+        for (_, p) in points {
+            if p.points > 0 {
+                acc.0 += p.points
+            } else {
+                acc.1 += p.points
+            }
+        }
+
+        format!("{} - {} = {}", acc.0, -acc.1, acc.0 + acc.1)
+    }
+
     pub async fn get(State(state): AppState) -> impl IntoResponse {
         Self {
             points: Self::list_points(&state.db, &state.config).unwrap(),
@@ -451,16 +465,16 @@ impl AdminResults {
                         .into_iter()
                         .map(|(_, points)| {
                             points_len += 1;
+                            if points.points > 0 {
+                                points_acc.0 += points.points
+                            } else {
+                                points_acc.1 += points.points
+                            };
                             points.points
                         })
                         .sum::<i32>()
                 });
             for (i, amount) in points.enumerate() {
-                if amount > 0 {
-                    points_acc.0 += amount
-                } else {
-                    points_acc.1 += amount
-                };
                 last[i] += amount * 3;
             }
         }

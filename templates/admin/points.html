@@ -33,7 +33,7 @@
 
 <main class="gap-20 flex flex-wrap items-center justify-evenly my-16 sm:px-16"
     hx-select="main" hx-target="main" hx-swap="outerHTML">
-    {% for (pp, class) in points.iter().zip(classes) %}
+    {% for (i, (pp, class)) in points.iter().zip(classes).enumerate() %}
     <div class="bg-stone-900 rounded-lg shadow p-8 min-w-[30vw]">
         <h2 class="text-xl text-center col-span-2">{{ class }}</h2>
         {% if pp.len() == 0 %}
@@ -41,11 +41,13 @@
         {% else %}
         {% for ( id, p ) in pp %}
         <div class="flex justify-between gap-10">
-            <p>{{ p.points }}</p>
-            <p>{{ p.reason }}</p>
+            <p>{{ p.points }} {{ p.reason }}</p>
             <button class="text-red-500" hx-delete="/admin/points?id={{ id }}">X</button>
         </div>
         {% endfor %}
+        <div class="text-stone-400 italic">
+            {{ Self::sums(pp) }}
+        </div>
         {% endif %}
     </div>
     {% endfor %}
