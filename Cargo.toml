@@ -23,7 +23,7 @@ lazy_static = "1.4.0"
 log = "0.4.21"
 recap = "0.1.2"
 reqwest = { version = "0.12.2", default-features = false, features = ["rustls-tls", "http2", "charset", "json"] }
-ring = "0.17.8"
+ring = "0.17.12"
 serde = { version = "1.0.197", features = ["derive"] }
 serde_json = "1.0.115"
 sled = "0.34.7"
