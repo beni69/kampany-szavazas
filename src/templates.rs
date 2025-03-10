@@ -1,11 +1,11 @@
 use crate::{auth::save_user, AppState, AppStateContainer, Config, Points, User};
 use askama::Template;
-use askama_axum::IntoResponse;
+use askama_web::WebTemplate;
 use axum::{
     extract::{Extension, Query, State},
     http::Method,
     middleware::Next,
-    response::Redirect,
+    response::{IntoResponse, Redirect},
 };
 use axum_extra::extract::Form;
 use bincode::Options;
@@ -18,7 +18,7 @@ use std::{
     time::{Instant, SystemTime},
 };
 
-#[derive(Template)]
+#[derive(Template, WebTemplate)]
 #[template(path = "index.html")]
 pub struct Index {
     maybe_user: Option<User>,
@@ -29,7 +29,7 @@ impl Index {
     }
 }
 
-#[derive(Template)]
+#[derive(Template, WebTemplate)]
 #[template(path = "login.html")]
 pub struct Login {}
 impl Login {
@@ -41,7 +41,7 @@ impl Login {
     }
 }
 
-#[derive(Template)]
+#[derive(Template, WebTemplate)]
 #[template(path = "me.html")]
 pub struct Me {
     user: User,
@@ -54,7 +54,7 @@ impl Me {
     }
 }
 
-#[derive(Template)]
+#[derive(Template, WebTemplate)]
 #[template(path = "vote/vbase.html")]
 pub struct VoteBase {
     tab: (usize, usize), // (current, len)
@@ -208,7 +208,7 @@ impl VoteBase {
     }
 }
 
-#[derive(Template)]
+#[derive(Template, WebTemplate)]
 #[template(path = "vote/tab.html")]
 struct VoteTab {
     tab: (usize, usize), // (current, len)
@@ -216,18 +216,18 @@ struct VoteTab {
     items: Vec<(usize, String)>,
 }
 
-#[derive(Template)]
+#[derive(Template, WebTemplate)]
 #[template(path = "vote/sortable.html")]
 struct VoteSortable {
     tab: (usize, usize), // (current, len)
     items: Vec<(usize, String)>,
 }
 
-#[derive(Template)]
+#[derive(Template, WebTemplate)]
 #[template(path = "vote/done.html")]
 struct VoteDone;
 
-#[derive(Template)]
+#[derive(Template, WebTemplate)]
 #[template(path = "vote/closed.html")]
 pub struct VoteClosed {
     voted: bool,
@@ -248,7 +248,7 @@ impl VoteClosed {
     }
 }
 
-#[derive(Template)]
+#[derive(Template, WebTemplate)]
 #[template(path = "vote/prohibited.html")]
 pub struct VoteProhibited;
 impl VoteProhibited {
@@ -286,7 +286,7 @@ impl VoteProhibited {
     }
 }
 
-#[derive(Template)]
+#[derive(Template, WebTemplate)]
 #[template(path = "admin/admin.html")]
 pub struct Admin;
 impl Admin {
@@ -295,7 +295,7 @@ impl Admin {
     }
 }
 
-#[derive(Template)]
+#[derive(Template, WebTemplate)]
 #[template(path = "admin/points.html")]
 pub struct AdminPoints {
     classes: Vec<String>,
@@ -399,7 +399,7 @@ impl AdminPoints {
     }
 }
 
-#[derive(Template)]
+#[derive(Template, WebTemplate)]
 #[template(path = "admin/results.html")]
 pub struct AdminResults {
     categories: Vec<String>,

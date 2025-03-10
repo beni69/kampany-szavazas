@@ -1,6 +1,11 @@
 use crate::{AppState, Config, User};
-use askama_axum::IntoResponse;
-use axum::{extract::State, http::Response, middleware::Next, response::Redirect, Extension, Form};
+use axum::{
+    extract::State,
+    http::Response,
+    middleware::Next,
+    response::{IntoResponse, Redirect},
+    Extension, Form,
+};
 use axum_extra::extract::{cookie::Cookie, CookieJar};
 use bincode::Options;
 use jsonwebtoken::{jwk::JwkSet, DecodingKey, TokenData, Validation};
