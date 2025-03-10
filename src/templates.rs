@@ -420,10 +420,7 @@ impl AdminResults {
         let x = state
             .db
             .iter()
-            .map(|x| {
-                user_count += 1;
-                x
-            })
+            .inspect(|_| user_count += 1)
             .filter_map(|x| x.ok())
             .flat_map(|(_, bin)| bincode::DefaultOptions::new().deserialize::<User>(&bin))
             .filter_map(|u| if u.voted { Some(u.order) } else { None }); // only count submitted votes
